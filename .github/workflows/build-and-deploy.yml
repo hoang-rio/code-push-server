@@ -1,0 +1,38 @@
+name: "Docker image build and deploy"
+
+on:
+  push:
+    branches:
+      - main
+env:
+  REGISTRY: ghcr.io
+  SSH_KEY_FILE_DIR: .keys
+  SSH_KEY_FILE_PATH: .keys/deploy_key.pem
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.1
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push docker image
+        run: |
+          docker compose build --push
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.1
+      - name: Create deploy key file
+        run: |
+          mkdir ${{env.SSH_KEY_FILE_DIR}}
+          echo "${{secrets.SSH_DEPLOY_KEY}}" > ${{env.SSH_KEY_FILE_PATH}}
+          chmod 600 ${{env.SSH_KEY_FILE_PATH}}
+      - name: Deploy with ssh
+        run: |
+          rsync -have "ssh -i ${{env.SSH_KEY_FILE_PATH}} -o StrictHostKeyChecking=no" docker-compose.yml ${{secrets.SSH_DEPLOY_USER}}@${{secrets.SSH_MAIN_HOST}}:${{secrets.DEPLOY_PATH}}/
+          ssh -i ${{env.SSH_KEY_FILE_PATH}} -o StrictHostKeyChecking=no ${{secrets.SSH_DEPLOY_USER}}@${{secrets.SSH_MAIN_HOST}} "cd ${{secrets.DEPLOY_PATH}}/ && docker compose pull && docker compose up -d"

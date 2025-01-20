@@ -5,7 +5,7 @@ services:
       dockerfile: ../Dockerfile
     image: ghcr.io/hoang-rio/codepush-server:latest
     ports:
-      - 3000:3000
+      - 3001:3000
     environment:
       EMULATED: true
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
