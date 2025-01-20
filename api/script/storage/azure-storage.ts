@@ -856,11 +856,24 @@ export class AzureStorage implements storage.Storage {
     let blobServiceClient: BlobServiceClient;
 
     if (process.env.EMULATED) {
-      const devConnectionString = "UseDevelopmentStorage=true";
+      if (process.env.AZURITE_HOST) {
+        const azuriteHost = process.env.AZURITE_HOST;
+        const tableDevConnectionString = `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://${azuriteHost}:10002/devstoreaccount1`;
 
-      tableServiceClient = TableServiceClient.fromConnectionString(devConnectionString);
-      tableClient = TableClient.fromConnectionString(devConnectionString, AzureStorage.TABLE_NAME);
-      blobServiceClient = BlobServiceClient.fromConnectionString(devConnectionString);
+        tableServiceClient = TableServiceClient.fromConnectionString(tableDevConnectionString, {allowInsecureConnection: true});
+        tableClient = TableClient.fromConnectionString(tableDevConnectionString, AzureStorage.TABLE_NAME, {
+          allowInsecureConnection: true,
+        });
+        blobServiceClient = BlobServiceClient.fromConnectionString(
+          `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://${azuriteHost}:10000/devstoreaccount1;`,
+        );
+      } else {
+        const devConnectionString = "UseDevelopmentStorage=true";
+
+        tableServiceClient = TableServiceClient.fromConnectionString(devConnectionString);
+        tableClient = TableClient.fromConnectionString(devConnectionString, AzureStorage.TABLE_NAME);
+        blobServiceClient = BlobServiceClient.fromConnectionString(devConnectionString);
+      }
     } else {
       if ((!accountName && !process.env.AZURE_STORAGE_ACCOUNT) || (!accountKey && !process.env.AZURE_STORAGE_ACCESS_KEY)) {
         throw new Error("Azure credentials not set");

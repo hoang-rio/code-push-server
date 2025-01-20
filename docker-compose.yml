@@ -1,0 +1,20 @@
+services:
+  codepush:
+    build:
+      context: ./api
+      dockerfile: ../Dockerfile
+    image: codepush-server:latest
+    ports:
+      - 3000:3000
+    environment:
+      EMULATED: true
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      AZURITE_HOST: azurite
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.33.0
+    volumes:
+      - azurite-data:/data
+
+volumes:
+  azurite-data:
