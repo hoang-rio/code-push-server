@@ -3,7 +3,7 @@ services:
     build:
       context: ./api
       dockerfile: ../Dockerfile
-    image: ghcr.io/hoang-rio/codepush-server:latest
+    image: ghcr.io/hoang-rio/code-push-server:latest
     ports:
       - ${PORT:-3000}:3000
     environment:
