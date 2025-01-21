@@ -11,7 +11,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4.1.1
       - name: Log in to the Container registry
@@ -24,7 +24,7 @@ jobs:
         run: |
           docker compose build --push
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build]
     steps:
       - uses: actions/checkout@v4.1.1
@@ -36,4 +36,4 @@ jobs:
       - name: Deploy with ssh
         run: |
           rsync -have "ssh -i ${{env.SSH_KEY_FILE_PATH}} -o StrictHostKeyChecking=no" docker-compose.yml ${{secrets.SSH_DEPLOY_USER}}@${{secrets.SSH_DEPLOY_HOST}}:${{secrets.SSH_DEPLOY_PATH}}/
-          ssh -i ${{env.SSH_KEY_FILE_PATH}} -o StrictHostKeyChecking=no ${{secrets.SSH_DEPLOY_USER}}@${{secrets.SSH_DEPLOY_HOST}} "cd ${{secrets.SSH_DEPLOY_PATH}}/ && docker compose pull && docker compose up -d"
+          ssh -i ${{env.SSH_KEY_FILE_PATH}} -o StrictHostKeyChecking=no ${{secrets.SSH_DEPLOY_USER}}@${{secrets.SSH_DEPLOY_HOST}} "cd ${{secrets.SSH_DEPLOY_PATH}}/ && docker compose pull && docker compose up -d && docker image prune -af"
