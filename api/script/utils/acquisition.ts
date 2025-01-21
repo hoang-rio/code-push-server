@@ -121,6 +121,11 @@ function getUpdatePackage(packageHistory: Package[], request: UpdateCheckRequest
     updateDetails.packageSize = latestSatisfyingEnabledPackage.size;
   }
 
+  if (process.env.AZURITE_URL) {
+    const azuriteHost = process.env.AZURITE_HOST || "127.0.0.1";
+    updateDetails.downloadURL = updateDetails.downloadURL.replace(`http://${azuriteHost}:10000`, process.env.AZURITE_URL)
+  }
+
   updateDetails.description = latestSatisfyingEnabledPackage.description;
   updateDetails.isMandatory = shouldMakeUpdateMandatory || latestSatisfyingEnabledPackage.isMandatory;
   updateDetails.isAvailable = true;
