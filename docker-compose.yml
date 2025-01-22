@@ -1,4 +1,14 @@
 services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.33.0
+    ports:
+      - 10000:10000
+    volumes:
+      - azurite-data:/data
+  redis:
+    image: redis:7.4.2-alpine
+    volumes:
+      - redis-data:/data
   codepush:
     build:
       context: ./api
@@ -13,12 +23,11 @@ services:
       SERVER_URL: ${SERVER_URL}
       AZURITE_HOST: azurite
       AZURITE_URL: ${AZURITE_URL}
-  azurite:
-    image: mcr.microsoft.com/azure-storage/azurite:3.33.0
-    ports:
-      - 10000:10000
-    volumes:
-      - azurite-data:/data
+      REDIS_HOST: redis
+    depends_on:
+      - azurite
+      - redis
 
 volumes:
   azurite-data:
+  redis-data:
