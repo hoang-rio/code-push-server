@@ -196,8 +196,7 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
             throw redisError;
           }
         })
-        .catch((error: storageTypes.StorageError) => errorUtils.restErrorHandler(res, error, next))
-        .done();
+        .catch((error: storageTypes.StorageError) => errorUtils.restErrorHandler(res, error, next));
     };
   };
 
@@ -268,8 +267,7 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
         .then(() => {
           res.sendStatus(200);
         })
-        .catch((error: any) => errorUtils.sendUnknownError(res, error, next))
-        .done();
+        .catch((error: any) => errorUtils.sendUnknownError(res, error, next));
     }
   };
 
@@ -286,8 +284,7 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
       .then(() => {
         res.sendStatus(200);
       })
-      .catch((error: any) => errorUtils.sendUnknownError(res, error, next))
-      .done();
+      .catch((error: any) => errorUtils.sendUnknownError(res, error, next));
   };
 
   router.get("/updateCheck", updateCheck(false));

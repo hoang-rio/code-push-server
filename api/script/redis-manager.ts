@@ -252,17 +252,17 @@ export class RedisManager {
 
     return this._setupMetricsClientPromise
       .then(() => {
-        const batchClient: any = (<any>this._metricsClient).batch();
+        const batchClient = this._metricsClient.multi();
         const currentDeploymentKeyLabelsHash: string = Utilities.getDeploymentKeyLabelsHash(currentDeploymentKey);
         const currentLabelActiveField: string = Utilities.getLabelActiveCountField(currentLabel);
         const currentLabelDeploymentSucceededField: string = Utilities.getLabelStatusField(currentLabel, DEPLOYMENT_SUCCEEDED);
-        batchClient.hincrby(currentDeploymentKeyLabelsHash, currentLabelActiveField, /* incrementBy */ 1);
-        batchClient.hincrby(currentDeploymentKeyLabelsHash, currentLabelDeploymentSucceededField, /* incrementBy */ 1);
+        batchClient.hIncrBy(currentDeploymentKeyLabelsHash, currentLabelActiveField, /* incrementBy */ 1);
+        batchClient.hIncrBy(currentDeploymentKeyLabelsHash, currentLabelDeploymentSucceededField, /* incrementBy */ 1);
 
         if (previousDeploymentKey && previousLabel) {
           const previousDeploymentKeyLabelsHash: string = Utilities.getDeploymentKeyLabelsHash(previousDeploymentKey);
           const previousLabelActiveField: string = Utilities.getLabelActiveCountField(previousLabel);
-          batchClient.hincrby(previousDeploymentKeyLabelsHash, previousLabelActiveField, /* incrementBy */ -1);
+          batchClient.hIncrBy(previousDeploymentKeyLabelsHash, previousLabelActiveField, /* incrementBy */ -1);
         }
 
         return this._promisifiedMetricsClient.execBatch(batchClient);
@@ -319,16 +319,16 @@ export class RedisManager {
 
     return this._setupMetricsClientPromise
       .then(() => {
-        const batchClient: any = (<any>this._metricsClient).batch();
+        const batchClient = this._metricsClient.multi();
         const deploymentKeyLabelsHash: string = Utilities.getDeploymentKeyLabelsHash(deploymentKey);
         const deploymentKeyClientsHash: string = Utilities.getDeploymentKeyClientsHash(deploymentKey);
         const toLabelActiveField: string = Utilities.getLabelActiveCountField(toLabel);
 
         batchClient.hSet(deploymentKeyClientsHash, clientUniqueId, toLabel);
-        batchClient.hincrby(deploymentKeyLabelsHash, toLabelActiveField, /* incrementBy */ 1);
+        batchClient.hIncrBy(deploymentKeyLabelsHash, toLabelActiveField, /* incrementBy */ 1);
         if (fromLabel) {
           const fromLabelActiveField: string = Utilities.getLabelActiveCountField(fromLabel);
-          batchClient.hincrby(deploymentKeyLabelsHash, fromLabelActiveField, /* incrementBy */ -1);
+          batchClient.hIncrBy(deploymentKeyLabelsHash, fromLabelActiveField, /* incrementBy */ -1);
         }
 
         return this._promisifiedMetricsClient.execBatch(batchClient);
