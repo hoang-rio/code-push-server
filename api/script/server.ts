@@ -17,6 +17,7 @@ defaultServer.start(function (err: Error, app: express.Express) {
 
   const port: number = Number(process.env.API_PORT) || Number(process.env.PORT) || defaultPort;
   let server: any;
+  app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
 
   if (httpsEnabled) {
     const options = {
