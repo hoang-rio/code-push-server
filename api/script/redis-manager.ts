@@ -2,9 +2,8 @@
 // Licensed under the MIT License.
 
 import * as assert from "assert";
-import * as express from "express";
 import * as q from "q";
-import * as redis from "redis";
+import { createClient, RedisClientType } from "redis";
 
 import Promise = q.Promise;
 
@@ -62,17 +61,17 @@ class PromisifiedRedisClient {
   public execBatch: (redisBatchClient: any) => Promise<any[]> = null;
   public exists: (...key: string[]) => Promise<number> = null;
   public expire: (key: string, seconds: number) => Promise<number> = null;
-  public hdel: (key: string, field: string) => Promise<number> = null;
-  public hget: (key: string, field: string) => Promise<string> = null;
-  public hgetall: (key: string) => Promise<any> = null;
-  public hincrby: (key: string, field: string, value: number) => Promise<number> = null;
-  public hset: (key: string, field: string, value: string) => Promise<number> = null;
-  public ping: (payload?: any) => Promise<any> = null;
-  public quit: () => Promise<void> = null;
-  public select: (databaseNumber: number) => Promise<void> = null;
-  public set: (key: string, value: string) => Promise<void> = null;
+  public hDel: (key: string, field: string) => Promise<number> = null;
+  public hGet: (key: string, field: string) => Promise<string> = null;
+  public hGetAll: (key: string) => Promise<Record<string, string>> = null;
+  public hIncrBy: (key: string, field: string, value: number) => Promise<number> = null;
+  public hSet: (key: string, field: string, value: string) => Promise<number> = null;
+  public ping: (payload?: string) => Promise<string> = null;
+  public quit: () => Promise<string> = null;
+  public select: (databaseNumber: number) => Promise<string> = null;
+  public set: (key: string, value: string) => Promise<string> = null;
 
-  constructor(redisClient: redis.RedisClient) {
+  constructor(redisClient: RedisClientType) {
     this.execBatch = (redisBatchClient: any) => {
       return q.ninvoke<any[]>(redisBatchClient, "exec");
     };
@@ -81,7 +80,7 @@ class PromisifiedRedisClient {
       if (this.hasOwnProperty(functionName) && (<any>this)[functionName] === null) {
         const originalFunction = (<any>redisClient)[functionName];
         assert(!!originalFunction, "Binding a function that does not exist: " + functionName);
-        (<any>this)[functionName] = q.nbind(originalFunction, redisClient);
+        (<any>this)[functionName] = originalFunction.bind(redisClient);
       }
     }
   }
@@ -91,25 +90,28 @@ export class RedisManager {
   private static DEFAULT_EXPIRY: number = 3600; // one hour, specified in seconds
   private static METRICS_DB: number = 1;
 
-  private _opsClient: redis.RedisClient;
+  private _opsClient: RedisClientType;
   private _promisifiedOpsClient: PromisifiedRedisClient;
-  private _metricsClient: redis.RedisClient;
+  private _metricsClient: RedisClientType;
   private _promisifiedMetricsClient: PromisifiedRedisClient;
-  private _setupMetricsClientPromise: Promise<void>;
+  private _setupMetricsClientPromise: Promise<string>;
 
   constructor() {
     if (process.env.REDIS_HOST && process.env.REDIS_PORT) {
       const redisConfig = {
-        host: process.env.REDIS_HOST,
-        port: process.env.REDIS_PORT,
-        auth_pass: process.env.REDIS_KEY,
-        tls: {
-          // Note: Node defaults CA's to those trusted by Mozilla
-          rejectUnauthorized: true,
+        socket: {
+          host: process.env.REDIS_HOST,
+          port: Number(process.env.REDIS_PORT),
         },
+        password: process.env.REDIS_KEY,
+        tls: process.env.REDIS_KEY
+          ? {
+              rejectUnauthorized: true,
+            }
+          : undefined,
       };
-      this._opsClient = redis.createClient(redisConfig);
-      this._metricsClient = redis.createClient(redisConfig);
+      this._opsClient = createClient(redisConfig);
+      this._metricsClient = createClient(redisConfig);
       this._opsClient.on("error", (err: Error) => {
         console.error(err);
       });
@@ -117,6 +119,9 @@ export class RedisManager {
       this._metricsClient.on("error", (err: Error) => {
         console.error(err);
       });
+
+      this._opsClient.connect().catch(console.error);
+      this._metricsClient.connect().catch(console.error);
 
       this._promisifiedOpsClient = new PromisifiedRedisClient(this._opsClient);
       this._promisifiedMetricsClient = new PromisifiedRedisClient(this._metricsClient);
@@ -151,7 +156,7 @@ export class RedisManager {
       return q<CacheableResponse>(null);
     }
 
-    return this._promisifiedOpsClient.hget(expiryKey, url).then((serializedResponse: string): Promise<CacheableResponse> => {
+    return this._promisifiedOpsClient.hGet(expiryKey, url).then((serializedResponse: string): Promise<CacheableResponse> => {
       if (serializedResponse) {
         const response = <CacheableResponse>JSON.parse(serializedResponse);
         return q<CacheableResponse>(response);
@@ -179,7 +184,7 @@ export class RedisManager {
       .exists(expiryKey)
       .then((isExisting: number) => {
         isNewKey = !isExisting;
-        return this._promisifiedOpsClient.hset(expiryKey, url, serializedResponse);
+        return this._promisifiedOpsClient.hSet(expiryKey, url, serializedResponse);
       })
       .then(() => {
         if (isNewKey) {
@@ -199,7 +204,7 @@ export class RedisManager {
     const hash: string = Utilities.getDeploymentKeyLabelsHash(deploymentKey);
     const field: string = Utilities.getLabelStatusField(label, status);
 
-    return this._setupMetricsClientPromise.then(() => this._promisifiedMetricsClient.hincrby(hash, field, 1)).then(() => {});
+    return this._setupMetricsClientPromise.then(() => this._promisifiedMetricsClient.hIncrBy(hash, field, 1)).then(() => {});
   }
 
   public clearMetricsForDeploymentKey(deploymentKey: string): Promise<void> {
@@ -225,18 +230,18 @@ export class RedisManager {
     }
 
     return this._setupMetricsClientPromise
-      .then(() => this._promisifiedMetricsClient.hgetall(Utilities.getDeploymentKeyLabelsHash(deploymentKey)))
+      .then(() => this._promisifiedMetricsClient.hGetAll(Utilities.getDeploymentKeyLabelsHash(deploymentKey)))
       .then((metrics) => {
         // Redis returns numerical values as strings, handle parsing here.
         if (metrics) {
           Object.keys(metrics).forEach((metricField) => {
-            if (!isNaN(metrics[metricField])) {
-              metrics[metricField] = +metrics[metricField];
+            if (!isNaN(Number(metrics[metricField]))) {
+              metrics[metricField] = metrics[metricField].toString();
             }
           });
         }
 
-        return <DeploymentMetrics>metrics;
+        return <DeploymentMetrics>(<unknown>metrics);
       });
   }
 
@@ -273,7 +278,7 @@ export class RedisManager {
     return this._setupMetricsClientPromise
       .then(() => {
         const deploymentKeyClientsHash: string = Utilities.getDeploymentKeyClientsHash(deploymentKey);
-        return this._promisifiedMetricsClient.hdel(deploymentKeyClientsHash, clientUniqueId);
+        return this._promisifiedMetricsClient.hDel(deploymentKeyClientsHash, clientUniqueId);
       })
       .then(() => {});
   }
@@ -302,7 +307,7 @@ export class RedisManager {
     }
 
     return this._setupMetricsClientPromise.then(() =>
-      this._promisifiedMetricsClient.hget(Utilities.getDeploymentKeyClientsHash(deploymentKey), clientUniqueId)
+      this._promisifiedMetricsClient.hGet(Utilities.getDeploymentKeyClientsHash(deploymentKey), clientUniqueId)
     );
   }
 
@@ -319,7 +324,7 @@ export class RedisManager {
         const deploymentKeyClientsHash: string = Utilities.getDeploymentKeyClientsHash(deploymentKey);
         const toLabelActiveField: string = Utilities.getLabelActiveCountField(toLabel);
 
-        batchClient.hset(deploymentKeyClientsHash, clientUniqueId, toLabel);
+        batchClient.hSet(deploymentKeyClientsHash, clientUniqueId, toLabel);
         batchClient.hincrby(deploymentKeyLabelsHash, toLabelActiveField, /* incrementBy */ 1);
         if (fromLabel) {
           const fromLabelActiveField: string = Utilities.getLabelActiveCountField(fromLabel);
