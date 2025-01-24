@@ -20,13 +20,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.1
         with:
-          fetch-depth: 0
+          fetch-depth: 10
       - name: Check if API has changed
         id: check_api_changed
         run: |
           GIT_SHOW_OUTPUT=$(git show --name-only --pretty="" ${{ github.sha }} | grep api/)
           echo $GIT_SHOW_OUTPUT
-          if [[ GIT_SHOW_OUTPUT != "" ]]; then
+          if [[ $GIT_SHOW_OUTPUT != "" ]]; then
             echo "API has changed"
             echo "HAS_API_CHANGED=true" >> $GITHUB_ENV
           else
