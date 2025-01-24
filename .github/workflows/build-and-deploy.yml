@@ -24,7 +24,6 @@ jobs:
       - name: Check if API has changed
         id: check_api_changed
         run: |
-          echo $(git show --name-only --pretty="" ${{ github.sha }} | grep api/)
           if [[ $(git show --name-only --pretty="" ${{ github.sha }} | grep api/) ]]; then
             echo "API has changed"
             echo "HAS_API_CHANGED=true" >> $GITHUB_ENV
