@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4.1.1
+        with:
+          fetch-depth: 10
       - name: Check if API has changed
         id: check_api_changed
         run: |
