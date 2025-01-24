@@ -8,6 +8,7 @@ env:
   REGISTRY: ghcr.io
   SSH_KEY_FILE_DIR: .keys
   SSH_KEY_FILE_PATH: .keys/deploy_key.pem
+  HAS_API_CHANGED: false
 
 concurrency:
   group: ${{ github.ref_name }}
@@ -18,13 +19,24 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4.1.1
+      - name: Check if API has changed
+        id: check_api_changed
+        run: |
+          if [[ $(git show --name-only --pretty="" ${{ github.sha }} | grep -q api/) ]]; then
+            echo "API has changed"
+            echo "HAS_API_CHANGED=true" >> $GITHUB_ENV
+          else
+            echo "API has not changed"
+          fi
       - name: Log in to the Container registry
         uses: docker/login-action@v3
+        if: ${{ env.HAS_API_CHANGED == 'true' }}
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
+        if: ${{ env.HAS_API_CHANGED == 'true' }}
         run: |
           docker compose build --push
   deploy:

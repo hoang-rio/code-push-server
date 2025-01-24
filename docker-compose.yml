@@ -1,12 +1,14 @@
 services:
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:3.33.0
+    restart: unless-stopped
     ports:
       - 10000:10000
     volumes:
       - azurite-data:/data
   redis:
     image: redis:7.4.2-alpine
+    restart: unless-stopped
     volumes:
       - redis-data:/data
   codepush:
@@ -14,6 +16,7 @@ services:
       context: ./api
       dockerfile: ../Dockerfile
     image: ghcr.io/hoang-rio/code-push-server:latest
+    restart: unless-stopped
     ports:
       - ${PORT:-3000}:3000
     environment:
