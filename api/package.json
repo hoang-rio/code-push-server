@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/microsoft/code-push-server"
+    "url": "https://github.com/hoang-rio/code-push-server"
   },
   "engines": {
     "node": ">=18.0.0",
