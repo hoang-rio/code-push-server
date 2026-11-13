@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: "Build and push the Docker image even if api/ has not changed"
+        type: boolean
+        default: false
 env:
   REGISTRY: ghcr.io
   SSH_KEY_FILE_DIR: .keys
@@ -20,16 +26,50 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 10
+          # Full history so the pre-push commit referenced by github.event.before
+          # is always available for the change detection below.
+          fetch-depth: 0
       - name: Check if API has changed
         id: check_api_changed
         run: |
-          if [[ $(git show --name-only --pretty="" ${{ github.sha }} | grep api/) ]]; then
-            echo "API has changed"
-            echo "HAS_API_CHANGED=true" >> $GITHUB_ENV
-          else
-            echo "API has not changed"
+          set -euo pipefail
+
+          HEAD_SHA="${{ github.sha }}"
+          BASE="${{ github.event.before }}"
+
+          # github.event.before is the previous head of the branch. Fall back to the
+          # head's first parent when before is missing (first push / new branch) or
+          # no longer exists (force push). This also covers merge commits, which
+          # `git show` reports with no file list at all and therefore used to skip
+          # the build.
+          if [ -z "$BASE" ] || [[ "$BASE" =~ ^0+$ ]] || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            BASE="$(git rev-parse --verify "${HEAD_SHA}^" 2>/dev/null || true)"
           fi
+
+          if [ "${{ inputs.force_build }}" = "true" ]; then
+            # Manual run with "force build" ticked: skip the change detection.
+            echo "Force build requested via workflow_dispatch"
+            CHANGED=true
+          elif [ -z "$BASE" ]; then
+            # Root commit: no base to compare against, so rebuild to stay safe.
+            echo "No base commit found, assuming API has changed"
+            CHANGED=true
+          else
+            # Written to a file first: piping into `grep -q` can make git exit with
+            # SIGPIPE, which `pipefail` would turn into a false "no changes".
+            CHANGED_FILES="$RUNNER_TEMP/changed-files.txt"
+            git diff --name-only "$BASE" "$HEAD_SHA" > "$CHANGED_FILES"
+
+            if grep -qE '^api/|^Dockerfile$' "$CHANGED_FILES"; then
+              echo "API has changed"
+              CHANGED=true
+            else
+              echo "API has not changed"
+              CHANGED=false
+            fi
+          fi
+
+          echo "HAS_API_CHANGED=$CHANGED" >> "$GITHUB_ENV"
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         if: ${{ env.HAS_API_CHANGED == 'true' }}
