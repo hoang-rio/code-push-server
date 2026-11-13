@@ -1,6 +1,6 @@
-FROM node:20.11.1-alpine3.19 AS node
+FROM node:24.22.3-alpine3.24 AS node
 
-FROM node as runner
+FROM node AS runner
 COPY . .
 COPY .env.example .env
 RUN npm install

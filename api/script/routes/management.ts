@@ -1084,7 +1084,7 @@ export function getManagementRouter(config: ManagementConfig): Router {
   );
 
   router.post(
-    "/apps/:appName/deployments/:deploymentName/rollback/:targetRelease?",
+    "/apps/:appName/deployments/:deploymentName/rollback{/:targetRelease}",
     (req: Request, res: Response, next: (err?: any) => void): any => {
       const accountId: string = req.user.id;
       const appName: string = req.params.appName;
