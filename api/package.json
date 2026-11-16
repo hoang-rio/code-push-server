@@ -6,11 +6,11 @@
   "scripts": {
     "start": "node ./bin/script/server.js",
     "start:env": "node -r dotenv/config ./bin/script/server.js dotenv_config_path=.env dotenv_config_silent=true dotenv_config_debug=true",
-    "clean": "rimraf bin",
-    "build": "tsc && shx cp -r ./script/views ./bin/script",
+    "clean": "node -e \"require('node:fs').rmSync('bin', { recursive: true, force: true })\"",
+    "build": "tsc && node -e \"require('node:fs').cpSync('script/views', 'bin/script/views', { recursive: true })\"",
     "prettier": "prettier --write \"./**/*.ts\"",
-    "lint": "npx eslint ./script/**/*.ts",
-    "lint:fix": "npx eslint ./script/**/*.ts --fix"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "repository": {
     "type": "git",
@@ -30,6 +30,7 @@
     "applicationinsights": "^3.16.0",
     "body-parser": "^1.20.9",
     "cookie-session": "^2.1.1",
+    "dotenv": "^16.0.3",
     "ejs": "^3.1.10",
     "email-validator": "1.0.3",
     "express": "^5.2.1",
@@ -50,7 +51,6 @@
     "stream-to-array": "^2.3.0",
     "streamifier": "0.1.1",
     "superagent": "^10.3.0",
-    "try-json": "1.0.0",
     "yauzl": "3.2.1",
     "yazl": "2.2.2"
   },
@@ -59,15 +59,12 @@
     "@types/jest": "^30.0.0",
     "@types/mocha": "^10.0.1",
     "@types/multer": "^1.4.7",
-    "@types/node": "^20.1.4",
+    "@types/node": "^24.0.0",
     "@types/q": "^1.5.5",
-    "@typescript-eslint/eslint-plugin": "^8.67.0",
-    "@typescript-eslint/parser": "^8.67.0",
-    "dotenv": "^16.0.3",
-    "eslint": "^8.45.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.2",
+    "@typescript-eslint/parser": "^8.72.2",
+    "eslint": "^10.15.0",
     "prettier": "^2.8.8",
-    "rimraf": "^5.0.1",
-    "shx": "^0.3.4",
     "supertest": "^7.2.2",
     "typescript": "^5.0.4"
   }

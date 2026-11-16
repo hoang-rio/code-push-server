@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 import * as express from "express";
+import * as jsonUtils from "../utils/json-utils";
 import * as restHeaders from "../utils/rest-headers";
 import * as restTypes from "../types/rest-definitions";
 import ApplicationInsights = require("applicationinsights");
-import tryJSON = require("try-json");
 
 enum ServiceResource {
   AccessKeys,
@@ -196,7 +196,8 @@ export class AppInsights {
           }
         } else if (resource === ServiceResource.Release || resource === ServiceResource.Promote) {
           if (req.body) {
-            const info: restTypes.PackageInfo = tryJSON(req.body.packageInfo) || req.body.packageInfo;
+            const info: restTypes.PackageInfo =
+              jsonUtils.tryParseJSON<restTypes.PackageInfo>(req.body.packageInfo) || req.body.packageInfo;
             if (info && info.rollout) {
               let value: string;
               switch (method) {

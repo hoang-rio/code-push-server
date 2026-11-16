@@ -12,6 +12,7 @@ import * as errorUtils from "../utils/rest-error-handling";
 import { Request, Response, Router } from "express";
 import * as fs from "fs";
 import * as hashUtils from "../utils/hash-utils";
+import * as jsonUtils from "../utils/json-utils";
 import * as q from "q";
 import * as redis from "../redis-manager";
 import * as restTypes from "../types/rest-definitions";
@@ -25,7 +26,6 @@ import PackageDiffer = packageDiffing.PackageDiffer;
 import NameResolver = storageTypes.NameResolver;
 import PackageManifest = hashUtils.PackageManifest;
 import Promise = q.Promise;
-import tryJSON = require("try-json");
 import rateLimit from "express-rate-limit";
 import { isPrototypePollutionKey } from "../storage/storage";
 
@@ -772,7 +772,7 @@ export function getManagementRouter(config: ManagementConfig): Router {
     }
 
     const filePath: string = createTempFileFromBuffer(file.buffer);
-    const restPackage: restTypes.Package = tryJSON(req.body.packageInfo) || {};
+    const restPackage: restTypes.Package = jsonUtils.tryParseJSON<restTypes.Package>(req.body.packageInfo) || <restTypes.Package>{};
     const validationErrors: validationUtils.ValidationError[] = validationUtils.validatePackageInfo(
       restPackage,
       /*allOptional*/ false

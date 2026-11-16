@@ -165,7 +165,6 @@ export function toRestDeploymentMetrics(metricsFromRedis: any): DeploymentMetric
   }
 
   const restDeploymentMetrics: DeploymentMetrics = {};
-  const totalActive: number = 0;
   const labelRegex = /^v\d+$/;
 
   Object.keys(metricsFromRedis).forEach((metricKey: string) => {

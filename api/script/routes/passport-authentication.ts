@@ -9,10 +9,8 @@ import * as passportBearer from "passport-http-bearer";
 import * as passportGitHub from "passport-github2";
 import * as passportWindowsLive from "passport-windowslive";
 import * as q from "q";
-import * as superagent from "superagent"
 import rateLimit from "express-rate-limit";
 
-import * as converterUtils from "../utils/converter";
 import * as restErrorUtils from "../utils/rest-error-handling";
 import * as restHeaders from "../utils/rest-headers";
 import * as security from "../utils/security";

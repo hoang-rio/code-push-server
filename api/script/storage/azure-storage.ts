@@ -929,7 +929,7 @@ export class AzureStorage implements storage.Storage {
         this._blobService = blobServiceClient;
       })
       .catch((error) => {
-        if (error.code == "ContainerAlreadyExists") {
+        if (error.code === "ContainerAlreadyExists") {
           this._tableClient = tableClient;
           this._blobService = blobServiceClient;
         } else {
@@ -1095,8 +1095,6 @@ export class AzureStorage implements storage.Storage {
     return this.getApp(accountId, appId, /*keepCollaboratorIds*/ true)
       .then((app: storage.App) => {
         const collaboratorMap: storage.CollaboratorMap = app.collaborators;
-        const requesterEmail: string = AzureStorage.getEmailForAccountId(collaboratorMap, accountId);
-
         const removalPromises: q.Promise<void>[] = [];
 
         Object.keys(collaboratorMap).forEach((key: string) => {
@@ -1339,6 +1337,8 @@ export class AzureStorage implements storage.Storage {
       errorMessage = azureError.message;
     }
 
+    // Codes arrive as either strings or numbers, so a loose comparison is intentional here.
+    // eslint-disable-next-line eqeqeq
     if (overrideMessage && overrideCondition == errorCodeRaw) {
       errorMessage = overrideValue;
     }
